@@ -11,6 +11,7 @@ const bootstrap = () => {
 
   app.get("/", (req, res) => res.send("welcome😊"));
   checkConnectionDB();
+  app.use("/uploads", express.static("uploads"));
   app.use("/users", userRouter);
   app.use("{/*demo}", (req, res, next) => {
     res.status(404).json({ message: `${req.originalUrl} not found` });

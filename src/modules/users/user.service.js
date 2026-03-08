@@ -1,4 +1,4 @@
-import { ProviderEnum } from "../../common/enum/user.enum.js";
+import { ProviderEnum, RoleEnum } from "../../common/enum/user.enum.js";
 import {
   decrypt,
   encrypt,
@@ -11,21 +11,33 @@ import {
 import * as db_service from "../../DB/db.service.js";
 import userModel from "../../DB/models/user.model.js";
 import { OAuth2Client } from "google-auth-library";
-import { SALT_ROUNDS, SECRET_KEY } from "../../../config/config.service.js";
-
+import { ACCESS_SECRET_KEY, PREFIX, REFRESH_SECRET_KEY, SALT_ROUNDS } from "../../../config/config.service.js";
+import { authorization } from "./../../common/middleware/authorization.js";
+import cloudinary from "../../common/utils/couldinary.js";
 
 export const signup = async (req, res, next) => {
   try {
     const { userName, email, password, age, gender, phone } = req.body;
+    console.log(req.file, "after");
 
+    // if (!req.file) {
+    //   throw new Error("profile picture is required", { cause: 400 });
+    // }
 
-    const emailExits = await db_service.findOne({
-      model: userModel,
-      filter: { email },
-    });
-    if (emailExits) {
-      return res.status(409).json({ message: "email already exist" });
+    if (await db_service.findOne({ model: userModel, filter: { email } })) {
+      throw new Error("email already exist", { cause: 409 });
     }
+
+   const {secure_url,public_id}= await cloudinary.uploader.upload(req.file.path,{
+    folder:"saraha_app/users",
+    // public_id:"shahd",
+    // use_filename:true,
+  
+   })
+    // let arr_paths = [];
+    // for (const file of req.files.attachments) {
+    //   arr_paths.push(file.path);
+    // }
     const user = await db_service.create({
       model: userModel,
       data: {
@@ -33,11 +45,13 @@ export const signup = async (req, res, next) => {
         email,
         password: Hash({
           plainText: password,
-          salt_rounds:SALT_ROUNDS,
+          salt_rounds: SALT_ROUNDS,
         }),
         age,
         gender,
         phone: encrypt(phone),
+        profilePicture:{secure_url:secure_url,public_id:public_id},
+        // coverPicture: arr_paths,
       },
     });
     res.status(201).json({ message: "done", user });
@@ -116,14 +130,20 @@ export const signIn = async (req, res, next) => {
     }
     const access_token = GenerateToken({
       payload: { id: user._id, email: user.email },
-      secret_key: process.env.SECRET_KEY,
+      secret_key:ACCESS_SECRET_KEY,
       options: {
         expiresIn: 60 * 10,
-        // notBefore:60*60,
-        // jwtid:uuidv4()
       },
     });
-    res.status(201).json({ message: "success login", data: { access_token } });
+    const refresh_token = GenerateToken({
+      payload: { id: user._id, email: user.email },
+      secret_key: REFRESH_SECRET_KEY,
+      options: {
+        expiresIn: "1y",
+      },
+    });
+
+    res.status(201).json({ message: "success login", data: { access_token , refresh_token } });
   } catch (error) {
     res.status(404).json({ message: error.message, stack: error.stack });
   }
@@ -137,4 +157,58 @@ export const getProfile = async (req, res, next) => {
   } catch (error) {
     res.status(404).json({ message: error.message, stack: error.stack });
   }
+};
+export const shareProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await db_service.findOne({
+      model: userModel,
+      id,
+      select: "-password",
+    });
+    if (!user) {
+      throw new Error("user not exist");
+    }
+    user.phone = decrypt(user.phone);
+    res.status(201).json({
+      message: "done",
+      data: user,
+    });                 
+  } catch (error) {
+    res.status(404).json({ message: error.message, stack: error.stack });
+  }
+};
+
+
+
+export const refreshToken = async (req, res, next) => {
+  const { authorization } = req.headers;
+  if (!authorization) {
+    throw new Error("token not exist");
+  }
+    const [prefix, token] = authorization.split(" ");
+    if(prefix !== PREFIX) {
+      throw new Error("invalid Token prefix");
+    }
+  
+  const decoded = VerifyToken({
+    token,
+    secret_key: REFRESH_SECRET_KEY,});
+    if(!decoded || !decoded?.id)
+      {
+        throw new Error("invalid token");
+      }
+  const user = await db_service.findOne({ model: userModel, filter: { _id: decoded.id } });
+  if (!user) {
+    throw new Error("user not exist");
+  }
+  const access_token = GenerateToken({
+    payload: { id: user._id, email: user.email },
+    secret_key: ACCESS_SECRET_KEY,
+    options: {
+      expiresIn: 60 * 10,
+
+    }
+  });
+  res.status(201).json({ message: "success refresh", data: { access_token } });
 };

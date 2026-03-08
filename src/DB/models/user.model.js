@@ -41,7 +41,14 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(GenderEnum),
       default: GenderEnum.male,
     },
-    profilePicture: String,
+    profilePicture: {
+      secure_url:{ type: String ,required:true},
+      public_id:{ type: String ,required:true},
+    },
+    coverPicture:[{
+      secure_url:{ type: String ,required:true},
+      public_id:{ type: String ,required:true},
+    }],
     confirmed: Boolean,
     provider: {
       type: String,

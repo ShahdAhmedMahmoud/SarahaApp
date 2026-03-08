@@ -13,4 +13,6 @@ dotenv.config({ path: resolve(`config/${envPaths[NODE_ENV]}`) });
 export const PORT = +process.env.PORT;
 export const SALT_ROUNDS = +process.env.SALT_ROUNDS;
 export const DB_URL = process.env.DB_URL;
-export const SECRET_KEY = process.env.SECRET_KEY;
+export const ACCESS_SECRET_KEY = process.env.ACCESS_SECRET_KEY;
+export const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
+export const PREFIX = process.env.PREFIX;
