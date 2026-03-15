@@ -1,4 +1,5 @@
 import joi from "joi";
+import { Types } from "mongoose";
 
 export const general_rules = {
   email: joi
@@ -12,6 +13,10 @@ export const general_rules = {
     .string()
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/)
     ,
+    id: joi.string().custom((value, helpers) => {
+      const isValid = Types.ObjectId.isValid(value);
+      return isValid ? value : helpers.message("invalid id");
+    }),
   file: joi
     .object({
       fieldname: joi.string().required(),

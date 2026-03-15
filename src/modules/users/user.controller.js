@@ -19,9 +19,26 @@ userRouter.post(
 );
 
 userRouter.post("/signup/gmail", US.signupWithGmail);
-userRouter.post("/signin", US.signIn);
+userRouter.post("/signin", validation(UV.signInSchema), US.signIn);
 userRouter.get("/refresh-token", US.refreshToken);
 userRouter.get("/profile", authenticaion, US.getProfile);
-userRouter.get("/shareprofile/:id", US.shareProfile);
+userRouter.get(
+  "/shareprofile/:id",
+  validation(UV.shareProfileSchema),
+  US.shareProfile,
+);
+userRouter.patch(
+  "/updateprofile",
+  authenticaion,
+  validation(UV.updateProfileSchema),
+  US.updateProfile,
+);
+userRouter.patch(
+  "/updatepassword",
+  authenticaion,
+  validation(UV.updatePasswordSchema),
+  US.updatePassword,
+);
+userRouter.post("/logout", authenticaion, US.logout);
 
 export default userRouter;

@@ -45,7 +45,34 @@ export const signInSchema = {
   body: joi
     .object({
        email: joi.string().email({ tlds: { allow: true },minDomainSegments:2,maxDomainSegments:2 }).required(),
-      password: joi.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/).required(),
+      password: general_rules.password.required(),
     })
     .required(),
 };
+
+export const shareProfileSchema = {
+  params: joi
+    .object({
+      id: general_rules.id.required(),
+    }).required(),
+};
+export const updateProfileSchema = {
+  body: joi
+    .object({
+      firstName: joi.string().trim().min(3),
+      lastName: joi.string().trim().min(3),
+      gender: joi.string().valid(...Object.values(GenderEnum)),
+      phone: joi.string().min(10).max(15),
+    })
+    .required(),
+};
+export const updatePasswordSchema = {
+  body: joi
+    .object({
+      oldPassword: general_rules.password.required(),
+      newPassword: general_rules.password.required(),
+    })
+    .required(),
+};
+
+
